@@ -1,39 +1,50 @@
-var canvas  = $("#canvas"),
-    context = canvas.get(0).getContext("2d"),
-    $result = $('#result');
+const upload = document.getElementById('upload');
+const image = document.getElementById('image');
+const croppedImageElement = document.getElementById('cropped-image');
+const cropButton = document.getElementById('crop');
+const downloadButton = document.getElementById('download');
+let cropper;
+let lastCroppedImage;
 
-$('#fileInput').on( 'change', function(){
-    if (this.files && this.files[0]) {
-        if ( this.files[0].type.match(/^image\//) ) {
-            var reader = new FileReader();
-            reader.onload = function(evt) {
-                var img = new Image();
-                img.onload = function() {
-                    context.canvas.height = img.height;
-                    context.canvas.width  = img.width;
-                    context.drawImage(img, 0, 0);
-                    var cropper = canvas.cropper({
-                        aspectRatio: 16 / 9
-                    });
-                    $('#btnCrop').click(function() {
-                        // Get a string base 64 data url
-                        var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png");
-                        $result.append( $('<img>').attr('src', croppedImageDataURL) );
-                    });
-                    $('#btnRestore').click(function() {
-                        canvas.cropper('reset');
-                        $result.empty();
-                    });
-                };
-                img.src = evt.target.result;
-            };
-            reader.readAsDataURL(this.files[0]);
-        }
-        else {
-            alert("Invalid file type! Please select an image file.");
-        }
+upload.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            image.src = e.target.result;
+            if (cropper) {
+                cropper.destroy();
+            }
+            cropper = new Cropper(image, {
+                aspectRatio: NaN,
+                viewMode: 1,
+                autoCrop: false,
+                autoCropArea: 1,
+                movable: true,
+                zoomable: true,
+                rotatable: true,
+                scalable: true,
+            });
+        };
+        reader.readAsDataURL(file);
     }
-    else {
-        alert('No file(s) selected.');
+});
+
+cropButton.addEventListener('click', () => {
+    if (cropper) {
+        const croppedCanvas = cropper.getCroppedCanvas();
+        lastCroppedImage = croppedCanvas.toDataURL('image/png');
+        croppedImageElement.src = lastCroppedImage;
+        croppedImageElement.style.display = 'block';
+        cropper.clear();
+    }
+});
+
+downloadButton.addEventListener('click', () => {
+    if (lastCroppedImage) { // Используем сохраненное обрезанное изображение
+        const link = document.createElement('a');
+        link.href = lastCroppedImage;
+        link.download = 'cropped-image.png';
+        link.click();
     }
 });
